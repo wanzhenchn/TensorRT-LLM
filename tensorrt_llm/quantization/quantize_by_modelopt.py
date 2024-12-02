@@ -113,6 +113,7 @@ MODEL_NAME_PATTERN_MAP = {
     "MllamaForConditionalGeneration": "mllama",
     "Llama": "llama",
     "MllamaForCausalLM": "mllama",
+    "Compass": "llama",
     "Mistral": "llama",
     "GPTJ": "gptj",
     "FalconForCausalLM": "falcon",
