@@ -692,6 +692,12 @@ class PretrainedModel(Module,
                                      config,
                                      from_pruned=is_checkpoint_pruned)
         model = cls(config)
+        if config.tie_word_embeddings:
+            print("tie_word_embeddings=True, share weights")
+            weights["lm_head.weight"] = weights["transformer.vocab_embedding.weight"].clone()
+        if config.use_normhead:
+            print("use_normhead=True, normalize weights")
+            weights["lm_head.weight"] = torch.nn.functional.normalize(weights["lm_head.weight"])
         model.load(weights, from_pruned=is_checkpoint_pruned)
         return model
 
