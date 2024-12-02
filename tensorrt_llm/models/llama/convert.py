@@ -711,6 +711,10 @@ def load_weights_from_hf_model(hf_model,
                                        use_fp8_rowwise=False))
 
         if moe_config.has_moe():
+
+            if config.num_hidden_layers == 40:
+                moe_config.num_experts = 4 if l < 20 else 8
+
             rank_experts = list(range(moe_config.num_experts))
             if mapping.has_moe_ep():
                 rank_experts = mapping.ep_experts(moe_config.num_experts)

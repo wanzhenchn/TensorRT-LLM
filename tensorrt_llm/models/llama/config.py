@@ -214,6 +214,7 @@ class LLaMAConfig(PretrainedConfig):
             attention_multiplier=attention_multiplier,
             residual_multiplier=residual_multiplier,
             output_multiplier_scale=output_multiplier_scale,
+            use_normhead=hf_config.use_normhead,
             **kwargs)
 
     @classmethod
