@@ -119,8 +119,8 @@ install_tensorrt() {
         RELEASE_URL_TRT="https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.9.0/tars/TensorRT-${TRT_VER}.Linux.${ARCH}-gnu.cuda-${TRT_CUDA_VERSION}.tar.gz"
     fi
     wget --no-verbose ${RELEASE_URL_TRT} -O /tmp/TensorRT.tar
-    tar -xf /tmp/TensorRT.tar -C /usr/local/
-    mv /usr/local/TensorRT-${TRT_VER} /usr/local/tensorrt
+    tar -xf /tmp/TensorRT.tar -C /tmp/
+    mv /tmp/TensorRT-${TRT_VER} /usr/local/tensorrt
     pip3 install /usr/local/tensorrt/python/tensorrt-*-cp${PARSED_PY_VERSION}-*.whl
     rm -rf /tmp/TensorRT.tar
     echo 'export LD_LIBRARY_PATH=/usr/local/tensorrt/lib:$LD_LIBRARY_PATH' >> "${ENV}"
