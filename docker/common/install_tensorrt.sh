@@ -133,9 +133,9 @@ install_tensorrt() {
     fi
 
     wget --no-verbose ${RELEASE_URL_TRT} -O /tmp/TensorRT.tar
-    tar -xf /tmp/TensorRT.tar -C /usr/local/
-    mv /usr/local/TensorRT-${TRT_VER} /usr/local/tensorrt
-    pip3 install --no-cache-dir /usr/local/tensorrt/python/tensorrt-*-cp${PARSED_PY_VERSION}-*.whl
+    tar -xf /tmp/TensorRT.tar -C /tmp/
+    mv /tmp/TensorRT-${TRT_VER} /usr/local/tensorrt
+    pip3 install /usr/local/tensorrt/python/tensorrt-*-cp${PARSED_PY_VERSION}-*.whl
     rm -rf /tmp/TensorRT.tar
     echo 'export LD_LIBRARY_PATH=/usr/local/tensorrt/lib:$LD_LIBRARY_PATH' >> "${ENV}"
 }

@@ -216,4 +216,5 @@ MODEL_MAP = {
     'RobertaModel': RobertaModel,
     'RobertaForQuestionAnswering': RobertaForQuestionAnswering,
     'RobertaForSequenceClassification': RobertaForSequenceClassification,
+    'CompassForCausalLM': LLaMAForCausalLM,
 }
