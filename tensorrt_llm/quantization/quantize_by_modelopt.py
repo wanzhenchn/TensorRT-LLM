@@ -109,6 +109,7 @@ MODEL_NAME_PATTERN_MAP = {
     "GPT2": "gpt2",
     "Xverse": "llama",
     "Llama": "llama",
+    "Compass": "llama",
     "Mistral": "llama",
     "GPTJ": "gptj",
     "FalconForCausalLM": "falcon",
