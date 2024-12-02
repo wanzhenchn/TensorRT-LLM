@@ -188,6 +188,7 @@ class LLaMAConfig(PretrainedConfig):
             quantization=quant_config,
             remove_duplicated_kv_heads=remove_duplicated_kv_heads,
             tie_word_embeddings=tie_word_embeddings,
+            use_normhead=hf_config.use_normhead,
             **kwargs)
 
     @classmethod
