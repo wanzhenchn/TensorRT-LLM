@@ -84,6 +84,10 @@ class LLaMADecoderLayer(Module):
         mlp_kwargs = {}
         if config.moe.has_moe():
             ClsMLP = MOE
+
+            if config.num_hidden_layers == 40:
+                config.moe.num_experts = 4 if layer_idx < 20 else 8
+
             mlp_kwargs = {
                 "moe_config": config.moe,
                 "mapping": config.mapping,
@@ -457,6 +461,13 @@ class LLaMAForCausalLM(DecoderModelForCausalLM):
                 weights = load_weights_from_hf_model(hf_model, config)
             check_share_embedding(weights, config)
             model = cls(config)
+            if config.tie_word_embeddings:
+                weights["lm_head.weight"] = weights["transformer.vocab_embedding.weight"].clone()
+            if config.use_normhead:
+                print("use_normhead=True, normalize weights")
+                import torch
+                weights["lm_head.weight"] = torch.nn.functional.normalize(weights["lm_head.weight"])
+                model.load(weights)
             model.load(weights)
         return model
 
