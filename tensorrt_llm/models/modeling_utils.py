@@ -1779,7 +1779,7 @@ def preprocess_perlayer_weights(weights,
                     weights_scaling_factor_2 = weights.pop(
                         name.replace('weights_scaling_factor',
                                      'weights_scaling_factor_2'))
-                    weights[name] /= weights_scaling_factor_2
+                    weights[name] /= weights_scaling_factor_2.unsqueeze(-1)
                     weights[name] = weights[name].to(torch.float16).view(
                         str_dtype_to_torch(model_config.dtype))
                     weights[name.replace(
