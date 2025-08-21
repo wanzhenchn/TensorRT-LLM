@@ -216,6 +216,7 @@ class FusedMoEMethodBase(ABC):
             dst_w2_bias_tensor: Optional[torch.Tensor]):
         # Multithread weight load is superseded by prefetch_files() in model_engine.py
         # Also, threading adds overhead in order to protect shuffle index cache with critical section.
+        expert_num = len(load_expert_ids)
         for local_slot_id, expert_id in enumerate(load_expert_ids):
             # expert_idx is the local slot index of current rank
             expert_idx = local_slot_id
@@ -224,9 +225,14 @@ class FusedMoEMethodBase(ABC):
                     MoEWeightLoadingMode.VANILLA,
                     MoEWeightLoadingMode.W4A8_CUSTOM
             ]:
-                w1_weight = weights[f"{expert_id}.w1.weight"]
-                w3_weight = weights[f"{expert_id}.w3.weight"]
-                w2_weight = weights[f"{expert_id}.w2.weight"]
+                if expert_num == 48:
+                    w1_weight = weights[f"{expert_id}.gate_proj.weight"]
+                    w3_weight = weights[f"{expert_id}.up_proj.weight"]
+                    w2_weight = weights[f"{expert_id}.down_proj.weight"]
+                else:
+                    w1_weight = weights[f"{expert_id}.w1.weight"]
+                    w3_weight = weights[f"{expert_id}.w3.weight"]
+                    w2_weight = weights[f"{expert_id}.w2.weight"]
                 if module.bias:
                     w1_bias = weights[f"{expert_id}.w1.bias"]
                     w3_bias = weights[f"{expert_id}.w3.bias"]
@@ -1145,13 +1151,18 @@ class WInt4AFP8FusedMoEMethod(FusedMoEMethodBase):
 
         assert (len(module.interleave) == 2)
         # fc31 scales
+        expert_num = len(module.initial_local_expert_ids)
+        w1_layer_name = "gate_proj" if expert_num == 48 else "w1"
+        w3_layer_name = "up_proj" if expert_num == 48 else "w3"
+        w2_layer_name = "down_proj" if expert_num == 48 else "w2"
+
         all_w3_input_scales = [
-            load_weight_shard(weights[f"{expert_id}.w3.input_scale"],
+            load_weight_shard(weights[f"{expert_id}.{w3_layer_name}.input_scale"],
                               device=self.device)
             for expert_id in module.initial_local_expert_ids
         ]
         all_w1_input_scales = [
-            load_weight_shard(weights[f"{expert_id}.w1.input_scale"],
+            load_weight_shard(weights[f"{expert_id}.{w1_layer_name}.input_scale"],
                               device=self.device)
             for expert_id in module.initial_local_expert_ids
         ]
@@ -1169,7 +1180,7 @@ class WInt4AFP8FusedMoEMethod(FusedMoEMethodBase):
         else:
             # In vanilla ckpt (at least from ModelOpt), per-tensor input_scale and per-channel pre_quant_scale are separately stored
             all_w3_pre_quant_scales = [
-                load_weight_shard(weights[f"{expert_id}.w3.pre_quant_scale"],
+                load_weight_shard(weights[f"{expert_id}.{w3_layer_name}.pre_quant_scale"],
                                   module.tp_size,
                                   module.tp_rank,
                                   TensorParallelMode.ROW,
@@ -1177,7 +1188,7 @@ class WInt4AFP8FusedMoEMethod(FusedMoEMethodBase):
                 for expert_id in module.initial_local_expert_ids
             ]
             all_w1_pre_quant_scales = [
-                load_weight_shard(weights[f"{expert_id}.w1.pre_quant_scale"],
+                load_weight_shard(weights[f"{expert_id}.{w1_layer_name}.pre_quant_scale"],
                                   module.tp_size,
                                   module.tp_rank,
                                   TensorParallelMode.ROW,
@@ -1195,12 +1206,12 @@ class WInt4AFP8FusedMoEMethod(FusedMoEMethodBase):
                 (1 / all_w3_w1_input_scales_max))
             # In vanilla ckpt (at least from ModelOpt), per-tensor weight_scale_2 is separately stored
             all_w3_weight_scale_2 = [
-                load_weight_shard(weights[f"{expert_id}.w3.weight_scale_2"],
+                load_weight_shard(weights[f"{expert_id}.{w3_layer_name}.weight_scale_2"],
                                   device=self.device)
                 for expert_id in module.initial_local_expert_ids
             ]
             all_w1_weight_scale_2 = [
-                load_weight_shard(weights[f"{expert_id}.w1.weight_scale_2"],
+                load_weight_shard(weights[f"{expert_id}.{w1_layer_name}.weight_scale_2"],
                                   device=self.device)
                 for expert_id in module.initial_local_expert_ids
             ]
@@ -1214,7 +1225,7 @@ class WInt4AFP8FusedMoEMethod(FusedMoEMethodBase):
 
         # Per-group weight_scale
         all_w3_scales = [
-            load_weight_shard(weights[f"{expert_id}.w3.{weight_scale_name}"],
+            load_weight_shard(weights[f"{expert_id}.{w3_layer_name}.{weight_scale_name}"],
                               module.tp_size,
                               module.tp_rank,
                               TensorParallelMode.COLUMN,
@@ -1222,7 +1233,7 @@ class WInt4AFP8FusedMoEMethod(FusedMoEMethodBase):
             for expert_id in module.initial_local_expert_ids
         ]
         all_w1_scales = [
-            load_weight_shard(weights[f"{expert_id}.w1.{weight_scale_name}"],
+            load_weight_shard(weights[f"{expert_id}.{w1_layer_name}.{weight_scale_name}"],
                               module.tp_size,
                               module.tp_rank,
                               TensorParallelMode.COLUMN,
@@ -1252,7 +1263,7 @@ class WInt4AFP8FusedMoEMethod(FusedMoEMethodBase):
 
         # fc2 scales
         all_w2_input_scales = [
-            load_weight_shard(weights[f"{expert_id}.w2.input_scale"],
+            load_weight_shard(weights[f"{expert_id}.{w2_layer_name}.input_scale"],
                               device=self.device)
             for expert_id in module.initial_local_expert_ids
         ]
@@ -1271,7 +1282,7 @@ class WInt4AFP8FusedMoEMethod(FusedMoEMethodBase):
         else:
             # In vanilla ckpt (at least from ModelOpt), per-tensor input_scale and per-channel pre_quant_scale are separately stored
             all_w2_pre_quant_scales = [
-                load_weight_shard(weights[f"{expert_id}.w2.pre_quant_scale"],
+                load_weight_shard(weights[f"{expert_id}.{w2_layer_name}.pre_quant_scale"],
                                   module.tp_size,
                                   module.tp_rank,
                                   TensorParallelMode.COLUMN,
@@ -1287,7 +1298,7 @@ class WInt4AFP8FusedMoEMethod(FusedMoEMethodBase):
                 (1 / all_w2_input_scales_max))
             # In vanilla ckpt (at least from ModelOpt), per-tensor weight_scale_2 is separately stored
             all_w2_weight_scale_2 = [
-                load_weight_shard(weights[f"{expert_id}.w2.weight_scale_2"],
+                load_weight_shard(weights[f"{expert_id}.{w2_layer_name}.weight_scale_2"],
                                   device=self.device)
                 for expert_id in module.initial_local_expert_ids
             ]
@@ -1298,7 +1309,7 @@ class WInt4AFP8FusedMoEMethod(FusedMoEMethodBase):
 
         # Per-group weight_scale
         all_w2_scales = [
-            load_weight_shard(weights[f"{expert_id}.w2.{weight_scale_name}"],
+            load_weight_shard(weights[f"{expert_id}.{w2_layer_name}.{weight_scale_name}"],
                               module.tp_size,
                               module.tp_rank,
                               TensorParallelMode.ROW,
